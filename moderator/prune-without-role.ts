@@ -1,4 +1,5 @@
 import { env } from '../src/env.ts';
+import { delay } from 'https://deno.land/std@0.143.0/async/delay.ts';
 
 /**
  * See the [documentation][user].
@@ -70,7 +71,30 @@ for await (const page of getMembers())
             },
         });
 
-        // Stop the script for any errors
-        if (res.status !== 204)
-            throw new Error(`[@${user.id}]: ${res.status} ${res.statusText}`);
+        // Skip if successful
+        if (res.status === 204) continue;
+
+        // Throw if unknown status code
+        if (res.status !== 429) throw new Error(`unknown status code: ${res.status}`);
+
+        const scope = res.headers.get('X-RateLimit-Scope') ?? 'some';
+        console.error(`Exceeded ${scope} rate limit...`);
+
+        const limit = res.headers.get('X-RateLimit-Limit');
+        if (limit) console.error(`Maximum requests: ${limit}...`);
+
+        const reset = res.headers.get('X-RateLimit-Reset');
+        if (reset) {
+            const millis = Number(reset) * 1000;
+            const date = new Date(millis);
+            console.error(`Will retry after: ${date.toString()}...`);
+        }
+
+        const retry = res.headers.get('Retry-After');
+        if (!retry) throw new Error('Retry-After header not present');
+        console.error(`Waiting ${retry} seconds...`);
+
+        const millis = Number(retry) * 1000;
+        await delay(millis);
+        break;
     }
