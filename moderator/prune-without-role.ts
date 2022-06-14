@@ -60,7 +60,7 @@ if (!reason)
     throw new Error('must provide valid reason');
 
 // Parse the set of required roles
-const input = globalThis.prompt('Required Roles:')?.split(',');
+const input = globalThis.prompt('Required roles IDs (comma-separated):')?.split(',');
 const requiredRoles = new Set(input);
 for await (const page of getMembers())
     for (const { user, roles } of page) {
