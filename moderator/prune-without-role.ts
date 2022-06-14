@@ -1,4 +1,3 @@
-import { env } from '../src/env.ts';
 import { delay } from 'https://deno.land/std@0.143.0/async/delay.ts';
 
 /**
@@ -28,12 +27,12 @@ interface GuildMember {
 async function* getMembers() {
     let after: string | null = null;
     while (true) {
-        const endpoint = `https://discord.com/api/v10/guilds/${env.GUILD_ID}/members?limit=1000`;
+        const endpoint = `https://discord.com/api/v10/guilds/${GUILD_ID}/members?limit=1000`;
         const suffix = after === null ? '' : `&after=${after}`;
 
         const response = await fetch(endpoint + suffix, {
             method: 'GET',
-            headers: { 'Authorization': env.ACCESS_TOKEN },
+            headers: { 'Authorization': ACCESS_TOKEN },
         });
 
         const members: GuildMember[] = await response.json();
@@ -45,6 +44,15 @@ async function* getMembers() {
         after = last;
     }
 }
+
+// Retrieve environment variables
+const BOT_TOKEN = Deno.env.get('BOT_TOKEN');
+const GUILD_ID = Deno.env.get('GUILD_ID');
+
+if (!BOT_TOKEN || !GUILD_ID)
+    throw new Error('missing environment variables');
+
+const ACCESS_TOKEN = 'Bot ' + BOT_TOKEN;
 
 // Get audit log reason
 const reason = globalThis.prompt('Why are we kicking these users?');
@@ -63,10 +71,10 @@ for await (const page of getMembers())
         if (roles.some(role => requiredRoles.has(role))) continue;
 
         // Otherwise kick this user
-        const res = await fetch(`https://discord.com/api/v10/guilds/${env.GUILD_ID}/members/${user.id}`, {
+        const res = await fetch(`https://discord.com/api/v10/guilds/${GUILD_ID}/members/${user.id}`, {
             method: 'DELETE',
             headers: {
-                'Authorization': env.ACCESS_TOKEN,
+                'Authorization': ACCESS_TOKEN,
                 'X-Audit-Log-Reason': reason,
             },
         });
